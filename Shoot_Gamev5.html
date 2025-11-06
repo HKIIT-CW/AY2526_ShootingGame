@@ -27,16 +27,16 @@
         }
         /* 不同場景的背景 */
         .scene-gamepad {
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><defs><linearGradient id="gamepad-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23667eea"/><stop offset="100%" style="stop-color:%23764ba2"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23gamepad-bg)"/></svg>');
+            background-image: url('https://raw.githubusercontent.com/HKIIT-CW/AY2526_ShootingGame/refs/heads/main/game_bg_GSD5.png');
         }
         .scene-speaker {
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><defs><linearGradient id="speaker-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%2354D62C"/><stop offset="100%" style="stop-color:%232F8F47"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23speaker-bg)"/></svg>');
+            background-image: url('https://raw.githubusercontent.com/HKIIT-CW/AY2526_ShootingGame/refs/heads/main/game_bg_AIST2.png');
         }
         .scene-book {
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><defs><linearGradient id="book-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23FF8A80"/><stop offset="100%" style="stop-color:%23FF5722"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23book-bg)"/></svg>');
+            background-image: url('https://raw.githubusercontent.com/HKIIT-CW/AY2526_ShootingGame/refs/heads/main/game_bg_SE2.png');
         }
         .scene-lock {
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080"><defs><linearGradient id="lock-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23FF9800"/><stop offset="100%" style="stop-color:%23E65100"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23lock-bg)"/></svg>');
+            background-image: url('https://raw.githubusercontent.com/HKIIT-CW/AY2526_ShootingGame/refs/heads/main/game_bg_CS3.png');
         }
         .scene-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -379,7 +379,7 @@
                 this.y = canvas.height + 80;
                 
                 this.vx = (Math.random() - 0.5) * 6 * 0.8;
-                this.vy = -(Math.random() * 8 + 12) * 0.8;
+                this.vy = -(Math.random() * 10 + 16) * 0.8;
                 this.gravity = 0.35 * 0.8;
                 this.rotation = 0;
                 this.rotationSpeed = (Math.random() - 0.5) * 0.25 * 0.8;
@@ -626,7 +626,7 @@
             if (!gameState.isPlaying) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawClouds();
+            //drawClouds();
 
             gameState.targets.forEach((target, index) => {
                 target.update();
