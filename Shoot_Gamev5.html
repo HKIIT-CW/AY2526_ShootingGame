@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多場景射擊遊戲</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -62,7 +63,7 @@
             <h1 class="text-6xl font-bold text-gray-800 dark:text-white mb-4">🎯HKIIT 射擊遊戲</h1>
             <p class="text-xl text-gray-600 dark:text-gray-300">選擇您想要的射擊場景</p>
         </div>
-        
+
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
             <!-- 遊戲手柄場景 -->
             <div class="scene-card bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg cursor-pointer" onclick="selectScene('gamepad')">
@@ -72,7 +73,7 @@
                     <p class="text-gray-600 dark:text-gray-300 text-sm">射擊遊戲手柄</p>
                 </div>
             </div>
-            
+
             <!-- 智能音箱場景 -->
             <div class="scene-card bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg cursor-pointer" onclick="selectScene('speaker')">
                 <div class="text-center">
@@ -81,7 +82,7 @@
                     <p class="text-gray-600 dark:text-gray-300 text-sm">射擊智能音箱</p>
                 </div>
             </div>
-            
+
             <!-- 編程書籍場景 -->
             <div class="scene-card bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg cursor-pointer" onclick="selectScene('book')">
                 <div class="text-center">
@@ -90,7 +91,7 @@
                     <p class="text-gray-600 dark:text-gray-300 text-sm">射擊編程書籍</p>
                 </div>
             </div>
-            
+
             <!-- 鎖牌場景 -->
             <div class="scene-card bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg cursor-pointer" onclick="selectScene('lock')">
                 <div class="text-center">
@@ -113,14 +114,17 @@
                 <h1 id="gameTitle" class="text-4xl font-bold text-gray-800 dark:text-white">🎯 射擊遊戲</h1>
                 <div class="w-20"></div> <!-- 佔位符保持對稱 -->
             </div>
-            
+
             <p id="scoreInfo" class="text-md text-gray-500 dark:text-gray-400"></p>
         </div>
 
         <div class="flex gap-4 h-full">
             <!-- 左側排名榜 -->
-            <div class="w-72 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-4 text-center">🏆 排行榜</h3>
+            <div class="w-72 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg overflow-y-auto" style="max-height: 80vh;">
+                <div class="flex items-center justify-center gap-2 mb-4">
+                    <h3 class="text-xl font-bold text-gray-800 dark:text-white text-center">🏆 排行榜</h3>
+                    <span id="leaderboardMode" class="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"></span>
+                </div>
                 <div id="leaderboard" class="space-y-2">
                     <div class="text-center text-gray-500 dark:text-gray-400">暫無記錄</div>
                 </div>
@@ -154,16 +158,16 @@
                 <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4">🎯 遊戲結束！</h2>
                 <div class="text-5xl font-bold text-primary mb-2" id="finalScore">0</div>
                 <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">分數</p>
-                
+
                 <div class="mb-6">
                     <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
                         請輸入您的名字：
                     </label>
-                    <input type="text" id="playerNameInput" maxlength="15" 
+                    <input type="text" id="playerNameInput" maxlength="15"
                            class="w-full px-4 py-2 text-base border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                            placeholder="輸入您的名字">
                 </div>
-                
+
                 <div class="flex space-x-3">
                     <button id="playAgainBtn" class="flex-1 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-semibold">
                         再玩一次
@@ -177,6 +181,34 @@
     </div>
 
     <script>
+        // ============================================
+        // Supabase 配置區域
+        // ============================================
+        // 請在此處填入您的 Supabase 項目資訊
+        // 1. 前往 https://supabase.com 創建免費帳戶
+        // 2. 創建新項目
+        // 3. 在 Project Settings > API 中找到以下資訊：
+        const SUPABASE_URL = 'https://fqsmhpddvdzezpmwiuft.supabase.co';  // 例如：https://xxxxx.supabase.co
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxc21ocGRkdmR6ZXpwbXdpdWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0OTcyODksImV4cCI6MjA3ODA3MzI4OX0.6PEX1XOBH24FBT-eEeb-Zmo1v4X3kj_DIfk1F6dNxBo';  // 您的 anon/public key
+
+        // 初始化 Supabase 客戶端
+        let supabase = null;
+        let useSupabase = false;
+
+        if (SUPABASE_URL !== 'xxx' && SUPABASE_ANON_KEY !== 'xxx') {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                useSupabase = true;
+                console.log('✅ Supabase 已連接');
+            } catch (error) {
+                console.warn('⚠️ Supabase 初始化失敗，將使用本地存儲', error);
+                useSupabase = false;
+            }
+        } else {
+            console.log('ℹ️ 未配置 Supabase，使用本地存儲模式');
+        }
+        // ============================================
+
         // 暗黑模式支援
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.classList.add('dark');
@@ -239,18 +271,25 @@
         function selectScene(scene) {
             currentScene = scene;
             const config = sceneConfigs[scene];
-            
+
             // 更新UI
             gameTitleElement.textContent = config.title;
             scoreInfoElement.textContent = config.scoreInfo;
-            
+
             // 更新背景
             gameContainerElement.className = `game-container rounded-lg shadow-xl overflow-hidden flex-1 ${config.className}`;
-            
+
+            // 更新排行榜模式標籤
+            const modeElement = document.getElementById('leaderboardMode');
+            if (modeElement) {
+                modeElement.textContent = useSupabase ? '🌐 在線' : '💾 本地';
+                modeElement.title = useSupabase ? '全球排行榜' : '本地排行榜';
+            }
+
             // 切換界面
             sceneSelectorElement.classList.add('hidden');
             gameInterfaceElement.classList.remove('hidden');
-            
+
             // 重置遊戲
             resizeCanvas();
             loadLeaderboard();
@@ -260,7 +299,7 @@
         function backToSceneSelect() {
             sceneSelectorElement.classList.remove('hidden');
             gameInterfaceElement.classList.add('hidden');
-            
+
             // 停止遊戲
             if (gameState.isPlaying) {
                 endGame();
@@ -271,13 +310,13 @@
         function resizeCanvas() {
             const container = canvas.parentElement;
             const aspectRatio = 1920 / 1080;
-            
+
             // 使用更大的尺寸
             const availableWidth = window.innerWidth - 320; // 減去側邊欄寬度
             const availableHeight = window.innerHeight - 200; // 減去標題和控制欄高度
-            
+
             let newWidth, newHeight;
-            
+
             if (availableWidth / availableHeight > aspectRatio) {
                 // 以高度為準
                 newHeight = availableHeight;
@@ -287,43 +326,68 @@
                 newWidth = availableWidth;
                 newHeight = newWidth / aspectRatio;
             }
-            
+
             // 確保最小尺寸
             newWidth = Math.max(newWidth, 800);
             newHeight = Math.max(newHeight, 450);
-            
+
             canvas.width = newWidth;
             canvas.height = newHeight;
-            
+
             // 更新容器樣式
             container.style.width = newWidth + 'px';
             container.style.height = newHeight + 'px';
         }
-        
+
         window.addEventListener('resize', resizeCanvas);
 
-        // 排行榜系統（每個場景獨立）
+        // 排行榜系統（每個場景獨立）- 擴展到20個
         let leaderboards = {
             gamepad: [],
             speaker: [],
             book: [],
             lock: []
         };
-        
-        function loadLeaderboard() {
-            updateLeaderboardDisplay();
+
+        // 從 Supabase 加載排行榜
+        async function loadLeaderboard() {
+            if (useSupabase) {
+                try {
+                    leaderboardElement.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400">載入中...</div>';
+
+                    const { data, error } = await supabase
+                        .from('leaderboard')
+                        .select('*')
+                        .eq('scene', currentScene)
+                        .order('score', { ascending: false })
+                        .limit(20);
+
+                    if (error) throw error;
+
+                    leaderboards[currentScene] = data || [];
+                    updateLeaderboardDisplay();
+                } catch (error) {
+                    console.error('載入排行榜失敗:', error);
+                    leaderboardElement.innerHTML = '<div class="text-center text-red-500 dark:text-red-400">載入失敗</div>';
+                    // 回退到本地模式
+                    useSupabase = false;
+                    updateLeaderboardDisplay();
+                }
+            } else {
+                updateLeaderboardDisplay();
+            }
         }
-        
+
         function updateLeaderboardDisplay() {
             const currentLeaderboard = leaderboards[currentScene];
             if (currentLeaderboard.length === 0) {
                 leaderboardElement.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400">暫無記錄</div>';
                 return;
             }
-            
+
             const html = currentLeaderboard
                 .sort((a, b) => b.score - a.score)
-                .slice(0, 10)
+                .slice(0, 20)
                 .map((entry, index) => {
                     const medalEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
                     const textColor = index < 3 ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-700 dark:text-gray-300';
@@ -335,19 +399,143 @@
                     `;
                 })
                 .join('');
-            
+
             leaderboardElement.innerHTML = html;
         }
-        
-        function addToLeaderboard(name, score) {
+
+        // 添加到排行榜並保存到 Supabase
+        async function addToLeaderboard(name, score) {
             const entry = {
                 name: name.trim() || '匿名玩家',
                 score: score,
-                date: new Date().toLocaleString()
+                scene: currentScene,
+                created_at: new Date().toISOString()
             };
-            
-            leaderboards[currentScene].push(entry);
-            updateLeaderboardDisplay();
+
+            if (useSupabase) {
+                try {
+                    // 保存到 Supabase
+                    const { data, error } = await supabase
+                        .from('leaderboard')
+                        .insert([entry])
+                        .select();
+
+                    if (error) throw error;
+
+                    // 重新加載排行榜
+                    await loadLeaderboard();
+                } catch (error) {
+                    console.error('保存到 Supabase 失敗:', error);
+                    // 回退到本地存儲
+                    leaderboards[currentScene].push(entry);
+                    updateLeaderboardDisplay();
+                }
+            } else {
+                // 本地模式
+                leaderboards[currentScene].push(entry);
+                updateLeaderboardDisplay();
+            }
+        }
+
+        // 背景音樂系統 - 使用Web Audio API
+        let audioContext = null;
+        let musicGainNode = null;
+        let currentNoteTime = 0;
+        let musicIntervalId = null;
+
+        // 初始化音頻上下文
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                musicGainNode = audioContext.createGain();
+                musicGainNode.gain.value = 0.15; // 降低音量，避免太吵
+                musicGainNode.connect(audioContext.destination);
+            }
+        }
+
+        // 播放單個音符
+        function playNote(frequency, duration, startTime) {
+            if (!audioContext) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(musicGainNode);
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'square'; // 使用方波獲得更活潑的聲音
+
+            // 設置音量包絡（ADSR）
+            const now = startTime || audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01); // Attack
+            gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05); // Decay
+            gainNode.gain.setValueAtTime(0.2, now + duration - 0.05); // Sustain
+            gainNode.gain.linearRampToValueAtTime(0, now + duration); // Release
+
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+
+        // 輕快的旋律（C大調音階的歡快曲調）
+        const melodyNotes = [
+            // 頻率（Hz）和持續時間（秒）
+            { freq: 523.25, dur: 0.2 }, // C5
+            { freq: 587.33, dur: 0.2 }, // D5
+            { freq: 659.25, dur: 0.2 }, // E5
+            { freq: 523.25, dur: 0.2 }, // C5
+            { freq: 587.33, dur: 0.2 }, // D5
+            { freq: 659.25, dur: 0.2 }, // E5
+            { freq: 783.99, dur: 0.3 }, // G5
+            { freq: 783.99, dur: 0.3 }, // G5
+
+            { freq: 659.25, dur: 0.2 }, // E5
+            { freq: 587.33, dur: 0.2 }, // D5
+            { freq: 523.25, dur: 0.2 }, // C5
+            { freq: 587.33, dur: 0.2 }, // D5
+            { freq: 659.25, dur: 0.2 }, // E5
+            { freq: 783.99, dur: 0.2 }, // G5
+            { freq: 880.00, dur: 0.4 }, // A5
+            { freq: 0, dur: 0.2 },      // 休止符
+        ];
+
+        let currentNoteIndex = 0;
+
+        // 播放背景音樂循環
+        function playBackgroundMusic() {
+            if (!audioContext || !gameState.isPlaying) return;
+
+            const note = melodyNotes[currentNoteIndex];
+
+            if (note.freq > 0) {
+                playNote(note.freq, note.dur, audioContext.currentTime);
+            }
+
+            currentNoteIndex = (currentNoteIndex + 1) % melodyNotes.length;
+
+            // 安排下一個音符
+            const nextNoteDelay = note.dur * 1000; // 轉換為毫秒
+            musicIntervalId = setTimeout(playBackgroundMusic, nextNoteDelay);
+        }
+
+        // 開始音樂
+        function startMusic() {
+            initAudio();
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            currentNoteIndex = 0;
+            playBackgroundMusic();
+        }
+
+        // 停止音樂
+        function stopMusic() {
+            if (musicIntervalId) {
+                clearTimeout(musicIntervalId);
+                musicIntervalId = null;
+            }
+            currentNoteIndex = 0;
         }
 
         // 遊戲狀態
@@ -377,7 +565,7 @@
                 this.startX = Math.random() * (canvas.width - 120) + 60;
                 this.x = this.startX;
                 this.y = canvas.height + 80;
-                
+
                 this.vx = (Math.random() - 0.5) * 6 * 0.8;
                 this.vy = -(Math.random() * 10 + 16) * 0.8;
                 this.gravity = 0.35 * 0.8;
@@ -387,7 +575,7 @@
 
             update() {
                 if (this.hit) return;
-                
+
                 this.x += this.vx;
                 this.y += this.vy;
                 this.vy += this.gravity;
@@ -409,35 +597,35 @@
         class Gamepad extends Target {
             draw() {
                 if (this.hit) return;
-                
+
                 ctx.save();
                 ctx.translate(this.x + this.width/2, this.y + this.height/2);
                 ctx.rotate(this.rotation);
-                
+
                 const w = this.width;
                 const h = this.height;
-                
+
                 // 主體
                 ctx.fillStyle = '#2C3E50';
                 ctx.roundRect(-w/2, -h/2, w, h, 10);
                 ctx.fill();
-                
+
                 // 左搖桿
                 ctx.fillStyle = '#34495E';
                 ctx.beginPath();
                 ctx.arc(-w/4, -h/6, w/8, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 右搖桿
                 ctx.beginPath();
                 ctx.arc(w/4, h/6, w/8, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 方向鍵
                 ctx.fillStyle = '#7F8C8D';
                 ctx.fillRect(-w/3, 0, w/6, h/8);
                 ctx.fillRect(-w/4, -h/12, h/8, w/6);
-                
+
                 // 按鈕
                 const colors = ['#E74C3C', '#F39C12', '#27AE60', '#3498DB'];
                 for (let i = 0; i < 4; i++) {
@@ -449,7 +637,7 @@
                     ctx.arc(w/4 + x, -h/6 + y, w/12, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                
+
                 ctx.restore();
             }
         }
@@ -458,19 +646,19 @@
         class Speaker extends Target {
             draw() {
                 if (this.hit) return;
-                
+
                 ctx.save();
                 ctx.translate(this.x + this.width/2, this.y + this.height/2);
                 ctx.rotate(this.rotation);
-                
+
                 const w = this.width;
                 const h = this.height;
-                
+
                 // 主體（圓柱形）
                 ctx.fillStyle = '#1C1C1C';
                 ctx.roundRect(-w/2, -h/2, w, h, w/4);
                 ctx.fill();
-                
+
                 // 揚聲器網格
                 ctx.strokeStyle = '#555';
                 ctx.lineWidth = 2;
@@ -480,17 +668,17 @@
                     ctx.lineTo(w/3, i * h/8);
                     ctx.stroke();
                 }
-                
+
                 // LED指示燈
                 ctx.fillStyle = '#00FF00';
                 ctx.beginPath();
                 ctx.arc(0, -h/3, w/16, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 品牌標誌區域
                 ctx.fillStyle = '#333';
                 ctx.fillRect(-w/3, h/4, w*2/3, h/6);
-                
+
                 ctx.restore();
             }
         }
@@ -506,29 +694,29 @@
 
             draw() {
                 if (this.hit) return;
-                
+
                 ctx.save();
                 ctx.translate(this.x + this.width/2, this.y + this.height/2);
                 ctx.rotate(this.rotation);
-                
+
                 const w = this.width;
                 const h = this.height;
-                
+
                 // 書籍封面
                 ctx.fillStyle = this.color;
                 ctx.fillRect(-w/2, -h/2, w, h);
-                
+
                 // 書脊
                 ctx.fillStyle = this.darkenColor(this.color);
                 ctx.fillRect(-w/2, -h/2, w/6, h);
-                
+
                 // 標題區域
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(-w/2 + w/4, -h/3, w/2, h/8);
-                
+
                 // 作者區域
                 ctx.fillRect(-w/2 + w/4, h/6, w/2, h/12);
-                
+
                 // 程式碼圖案
                 ctx.strokeStyle = '#FFFFFF';
                 ctx.lineWidth = 2;
@@ -537,7 +725,7 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('{ }', 0, 0);
                 ctx.fillText('< />', 0, h/8);
-                
+
                 ctx.restore();
             }
 
@@ -563,39 +751,39 @@
         class Lock extends Target {
             draw() {
                 if (this.hit) return;
-                
+
                 ctx.save();
                 ctx.translate(this.x + this.width/2, this.y + this.height/2);
                 ctx.rotate(this.rotation);
-                
+
                 const w = this.width;
                 const h = this.height;
-                
+
                 // 鎖身
                 ctx.fillStyle = '#D4AF37';
                 ctx.roundRect(-w/2, -h/6, w, h*2/3, w/8);
                 ctx.fill();
-                
+
                 // 鎖環
                 ctx.strokeStyle = '#D4AF37';
                 ctx.lineWidth = w/10;
                 ctx.beginPath();
                 ctx.arc(0, -h/4, w/4, Math.PI, 0);
                 ctx.stroke();
-                
+
                 // 鎖孔
                 ctx.fillStyle = '#2C3E50';
                 ctx.beginPath();
                 ctx.arc(0, h/12, w/6, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // 鎖孔開口
                 ctx.fillRect(-w/20, h/12, w/10, h/6);
-                
+
                 // 金屬光澤
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.fillRect(-w/2 + w/8, -h/6 + h/12, w/8, h/2);
-                
+
                 ctx.restore();
             }
         }
@@ -614,9 +802,9 @@
         // 生成新目標
         function spawnTarget() {
             if (!gameState.isPlaying) return;
-            
+
             gameState.targets.push(createTarget());
-            
+
             const nextSpawnTime = Math.random() * 750 + 400;
             gameState.spawnTimer = setTimeout(spawnTarget, nextSpawnTime);
         }
@@ -626,7 +814,6 @@
             if (!gameState.isPlaying) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            //drawClouds();
 
             gameState.targets.forEach((target, index) => {
                 target.update();
@@ -641,28 +828,13 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // 繪製雲朵背景（按比例調整）
-        function drawClouds() {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-            const scale = canvas.width / 800; // 根據canvas大小調整雲朵
-            for (let i = 0; i < 3; i++) {
-                const x = (Date.now() * 0.01 + i * 200 * scale) % (canvas.width + 100 * scale) - 50 * scale;
-                const y = 50 * scale + i * 40 * scale;
-                ctx.beginPath();
-                ctx.arc(x, y, 20 * scale, 0, Math.PI * 2);
-                ctx.arc(x + 30 * scale, y, 35 * scale, 0, Math.PI * 2);
-                ctx.arc(x + 60 * scale, y, 25 * scale, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
         // 繪製準心（按比例調整）
         function drawCrosshair() {
             if (!gameState.mouseX || !gameState.mouseY) return;
-            
+
             const scale = canvas.width / 800;
             const crossSize = 12 * scale;
-            
+
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -687,22 +859,48 @@
                     const scoreToAdd = target.score;
                     gameState.gameScore = Math.min(gameState.gameScore + scoreToAdd, gameState.maxGameScore);
                     gameScoreElement.textContent = gameState.gameScore;
-                    
+
                     gameState.targets.splice(index, 1);
                     createHitEffect(mouseX, mouseY, target.isLarge, scoreToAdd);
                 }
             });
         });
 
-        // 觸控事件支援
+        // 多點觸控事件支援
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            const clickEvent = new MouseEvent('click', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
+            if (!gameState.isPlaying) return;
+
+            const rect = canvas.getBoundingClientRect();
+
+            // 處理所有觸摸點
+            Array.from(e.touches).forEach(touch => {
+                const mouseX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+                const mouseY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+                gameState.targets.forEach((target, index) => {
+                    if (target.isClicked(mouseX, mouseY)) {
+                        target.hit = true;
+                        const scoreToAdd = target.score;
+                        gameState.gameScore = Math.min(gameState.gameScore + scoreToAdd, gameState.maxGameScore);
+                        gameScoreElement.textContent = gameState.gameScore;
+
+                        gameState.targets.splice(index, 1);
+                        createHitEffect(mouseX, mouseY, target.isLarge, scoreToAdd);
+                    }
+                });
             });
-            canvas.dispatchEvent(clickEvent);
+        });
+
+        // 處理觸摸移動（用於更新準心位置）
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                gameState.mouseX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+                gameState.mouseY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+            }
         });
 
         // 滑鼠移動事件
@@ -716,19 +914,19 @@
         function createHitEffect(x, y, isLarge, score) {
             const particleCount = isLarge ? 15 : 10;
             const particleSize = isLarge ? 6 : 4;
-            
+
             for (let i = 0; i < particleCount; i++) {
                 const angle = (Math.PI * 2 / particleCount) * i + Math.random() * 0.5;
                 const velocity = Math.random() * 4 + 3;
                 const life = 25;
-                
+
                 createParticle(x, y, angle, velocity, particleSize, life);
             }
-            
+
             createScoreEffect(x, y, score, isLarge);
             createFlashEffect(x, y, isLarge);
         }
-        
+
         // 粒子動畫
         function createParticle(startX, startY, angle, velocity, size, life) {
             let currentLife = life;
@@ -738,17 +936,17 @@
             const vy = Math.sin(angle) * velocity;
             const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
             const color = colors[Math.floor(Math.random() * colors.length)];
-            
+
             function animateParticle() {
                 if (currentLife <= 0) return;
-                
+
                 x += vx;
                 y += vy;
                 currentLife--;
-                
+
                 const alpha = currentLife / life;
                 const currentSize = size * alpha;
-                
+
                 ctx.save();
                 ctx.globalAlpha = alpha;
                 ctx.fillStyle = color;
@@ -756,13 +954,13 @@
                 ctx.arc(x, y, currentSize, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
-                
+
                 requestAnimationFrame(animateParticle);
             }
-            
+
             animateParticle();
         }
-        
+
         // 分數顯示特效
         function createScoreEffect(x, y, score, isLarge) {
             let offsetY = 0;
@@ -770,14 +968,14 @@
             let scale = isLarge ? 1.5 : 1.2;
             const duration = 70;
             let frame = 0;
-            
+
             function animateScore() {
                 if (frame >= duration) return;
-                
+
                 offsetY -= 2;
                 alpha = 1 - (frame / duration);
                 scale += 0.03;
-                
+
                 ctx.save();
                 ctx.globalAlpha = alpha;
                 ctx.fillStyle = score === 10 ? '#00FF00' : '#FFD700';
@@ -785,14 +983,14 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(`+${score}`, x, y + offsetY);
                 ctx.restore();
-                
+
                 frame++;
                 requestAnimationFrame(animateScore);
             }
-            
+
             animateScore();
         }
-        
+
         // 閃光效果
         function createFlashEffect(x, y, isLarge) {
             let radius = 0;
@@ -800,13 +998,13 @@
             const maxRadius = isLarge ? 40 : 25;
             const duration = 20;
             let frame = 0;
-            
+
             function animateFlash() {
                 if (frame >= duration) return;
-                
+
                 radius = (frame / duration) * maxRadius;
                 alpha = 0.8 * (1 - frame / duration);
-                
+
                 ctx.save();
                 ctx.globalAlpha = alpha;
                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
@@ -818,11 +1016,11 @@
                 ctx.arc(x, y, radius, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
-                
+
                 frame++;
                 requestAnimationFrame(animateFlash);
             }
-            
+
             animateFlash();
         }
 
@@ -832,16 +1030,19 @@
             gameState.gameScore = 0;
             gameState.timeLeft = 30;
             gameState.targets = [];
-            
+
             gameScoreElement.textContent = '0';
             timeElement.textContent = '30';
             startBtn.textContent = '遊戲中...';
             startBtn.disabled = true;
 
+            // 開始背景音樂
+            startMusic();
+
             gameState.gameTimer = setInterval(() => {
                 gameState.timeLeft--;
                 timeElement.textContent = gameState.timeLeft;
-                
+
                 if (gameState.timeLeft <= 0) {
                     endGame();
                 }
@@ -854,7 +1055,10 @@
         // 結束遊戲
         function endGame() {
             gameState.isPlaying = false;
-            
+
+            // 停止背景音樂
+            stopMusic();
+
             if (gameState.gameTimer) {
                 clearInterval(gameState.gameTimer);
                 gameState.gameTimer = null;
@@ -867,7 +1071,7 @@
             finalScoreElement.textContent = gameState.gameScore;
             nameInputModal.classList.remove('hidden');
             playerNameInput.focus();
-            
+
             startBtn.textContent = '開始遊戲';
             startBtn.disabled = false;
         }
@@ -879,7 +1083,7 @@
             nameInputModal.classList.add('hidden');
             playerNameInput.value = '';
         }
-        
+
         // 再玩一次
         function playAgain() {
             nameInputModal.classList.add('hidden');
@@ -892,7 +1096,7 @@
         saveScoreBtn.addEventListener('click', saveScore);
         playAgainBtn.addEventListener('click', playAgain);
         backToSelectBtn.addEventListener('click', backToSceneSelect);
-        
+
         playerNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 saveScore();
@@ -918,4 +1122,3 @@
     </script>
 </body>
 </html>
-
